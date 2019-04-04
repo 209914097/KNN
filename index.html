@@ -1,0 +1,313 @@
+<!DOCTYPE html >
+<!--版本号v1-->
+<html >
+<head>
+<title>KNN开发记录文档</title>
+ <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+ <script src="jquery.js" type="text/javascript"></script>
+<link rel="stylesheet" type="text/css" href="seelmovie.css">
+<link rel="stylesheet" type="text/css" href="googlefonts.css">
+<!--字体css原地址 https://cat.iyeku.com/css/googlefonts.css -->
+</head>
+<body>
+<div id="head" style="top:0px;" >	
+    <input style="    width: 90px; " type="button" id="A"class="bt" value="总述">    	
+    <input   type="button" id="B"class="bt" value="Step1 下载验证码">  
+	<input   type="button" id="C"class="bt" value="Step2 图片处理">    
+	<input   type="button" id="D"class="bt" value="Step3 K近邻算法"> 
+    <input   type="button" id="E"class="bt" value="Step4 模拟登陆">  
+	<input   type="button" id="F"class="bt" value="Step5 结果展示">    
+	<input style="    width: 90px; "   type="button" id="G"class="bt" value="感谢"> 
+	<input style="    width: 90px; "   type="button" id="H"class="bt" value="结束"> 
+	  
+</div>
+
+<div id="background" class="bg">
+<div class="bg text">
+<h1>Seel Develop</h1>	
+<p>用K近邻算法识别验证码并模拟登陆</p>
+</div>	
+<div class="bg overlay"></div>
+<img src="./bg1.jpg"></img>
+</div>     
+     
+    
+<div id="msg" >	
+<h2 id='Atitle'>总述</h2>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       
+这是一个用python3语言盗号入侵的例子，以我校古老的研究生信息管理系统网站(以下简称研究生网)为例，用K近邻算法去识别古老的验证码(什么是K近邻算法，详情可以参考《机器学习实战》第二章的内容，当然在下文我也会提及一下一些必要的算法思想)，然后自动填充用户名和密码，模拟登陆。看到这里，你可能会问，如何知道别人的密码。这个问题，当初我想过用跑字典的方法，但成功率实在不高。然后在一个偶然的机会，我发现我校的同学不走心有很大一批人，就是那种账密设置一样，或直接采用系统默认密码的。这样不走心人，实在是缺乏一点人生经验，所以呀！这就其实就有点社会工程学的味道在里面了。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+Let's GO！    
+</p>
+
+<br>
+
+<h2>准备</h2>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+python3     
+</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+pycharm      
+</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+chrome浏览器     
+</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+一个好用的脑子    
+</p>
+
+<br>
+
+<h2 id='Btitle'>Step1&nbsp;下载验证码</h2>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 下载验证码可以参考程序中<a class='attention'>download()</a>函数，我下了1000张。说明一下，这个验证码是研究生网后台aspx自动生成的，如果直接访问	&lt;img&gt;标签的src，得到的不是图片而是一堆乱码，而有些网站的验证码，则直接返回一张图片，要注意这一点</p>
+<img class='gifpic' src='2.gif'>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       
+这一堆乱码，如果用16进制表示(0x26 &nbsp; 0x13之类的)，就是gif图片的编码。因此在python中保存图片用以下代码：</p>
+<div  class='code'>
+<p>with open('dig/' + str(x) + '.gif', <a class='attention'>'wb'</a>) as pic:</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pic.write(r<a class='attention'>.content</a>)</p>
+
+</div>
+<p> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class='attention'>'wb'</a>表示以二进制形式写入文件，<a class='attention'>.content</a>返回的是Bytes二进制数据</p>
+
+
+<br>
+
+<h2 id='Ctitle'>Step2&nbsp;图片处理</h2>
+<h3>&nbsp;灰度化二值化</h3>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+灰度化就是把彩图变成灰色，灰度化处理方法有多种，可以求RGB三色的平均值，也可以用RGB分别乘以不同的权重求平均，当RGB三种颜色的参数改成相等时，图片就是灰色的，在此就不啰嗦了。二值化即，把图片变成黑白图，非黑即白，这样计算机好进行运算。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+<a class='attention'>biting(imgpath, threshold)</a>函数参数中有一个threshold阀值，它是可以人为改变的，目的在于过滤掉验证码中的蓝色干扰条纹和灰色噪声点，我选取的阀值是88，不同网站验证码的阀值会不一样</p>
+<div class='picinline'><img  src='4.gif'><p>原图</p></div >
+<div class='picinline'><img  src='1.bmp'><p>灰度化</p></div>
+<div class='picinline'><img  src='3.bmp'><p>二值化</p></div>
+
+<br>
+<br>
+<br><br>
+<br>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+可以看到二值化处理后的结果还是不错的，蓝色干扰条纹和灰色噪声点基本被去掉。</p>
+
+<h3>&nbsp;图片剪切</h3>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+饭要一口一口地吃，验证码有四个数字，因此要把它剪成四个数字进行识别。
+</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+剪切图片是有技巧的，你可能会想等间距地剪切图片，然后分离出四个数字，没错，我也是这么想的。然而，效果真的十分糟糕，剪切出来的图片数字都是断手断脚的。为此我采用了我称之为&Prime;重心切割&Prime;的方法。江湖上流传的剪切方法还有很多，比如&Prime;大水滴算法&Prime;剪切，但我在阅读它的时候失去了耐心。
+</p>
+<div class='pic'><img  src='5.bmp'><p>重心切割</p></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+上图是二值化后的验证码，可以看到，每个数字大概宽度为14px像素，而每个数字的重心大概分布在验证码的16px, 29px, 43px, 59px的位置上。基于这个想法，写出了程序<a class='attention'>scissor(imgpath)</a>函数。
+</p>
+<div style="margin-left: 150px;margin-top: 60px;">
+<div class='picinline'><img  src='6.bmp'><p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </p></div >
+<div class='picinline'><img  src='8.bmp'><p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </p></div>
+<div class='picinline'><img  src='9.bmp'><p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </p></div>
+<div class='picinline'><img  src='7.bmp'><p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </p></div>
+</div>
+<br>
+<br>
+<br><br>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+可以看到剪切效果不能说百分之百，但还是不错滴。对1000张验证码进行切割，我把它们都保存在&Prime;4000个重命名样本单元bmp&Prime;压缩文件中。
+</p>
+
+<h3>&nbsp;数阵</h3>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+二值化后的单个数字图片，我把它称之为&Prime;单元&Prime;。把这些单元中的黑白像素点用&Prime;0&Prime;或&Prime;1&Prime;表示，将形成一个数阵，具体实现参看程序函数<a class='attention'>getimgtable(imgpath)</a>；然后调用<a class='attention'>creatfile(data, filename)</a>函数生成txt文本。
+</p>
+<div  class='code' style="width: 200px;margin-left: 310px;">
+
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00000000000000</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00000000000000</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00000000000000</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00000000000000</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00000000011110</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00000001111111</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00000011000011</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;10000110000001</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;10000000000001</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;10000000000010</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;10000000000110</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00000000111000</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00000001111100</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00000000001100</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00000000000110</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00000000000110</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00110000001100</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00110000001100</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00110000111000</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00111111110000</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00011111000000</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00000000000000</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00000000000000</p>
+<p class='ptxt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;00000000000000</p>
+
+</div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+这就是生成的数阵。现在请远离屏幕，你将看到一个&Prime;3&Prime;。对其他的数字单元，作同样的处理，我把它保存在&Prime;4000个样本单元txt.zip&Prime;压缩文件中。
+</p>
+
+<h2 id='Dtitle'>Step3&nbsp;K近邻算法</h2>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+K近邻算法是验证码识别最最最核心的内容，关于这部分的程序，我直接借鉴了《机器学习实战》第二章kNN.py里的代码。核心思想是，假如我有点A(1,1.1)，A(1,1)，B(0,0.1),B(0,0),现在有一个点x(0.2,0.2),我们计算x到以上四个点的距离(两个点距离的计算等于每个点对应坐标值相减的差，作平方，再相加，然后再开方)，然后取距离最短的k个点(假设k=3)，显然距离最短的的3个点是B(0,0.1),B(0,0),A(1,1)。然后我们在这3个距离最短的点中，统计发现，标签为B的点最多,因此我们让计算机认为点x(0.2,0.2)，就是B点。K可以不为3，是人为取的。这个思想由函数<a class='attention'>classify0(inX, dataSet, labels, k)</a>实现</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+在这里，我们把A(1,1.1)，A(1,1)，B(0,0.1),B(0,0),这些已知到标签的点称为样本数据，我下载1000张验证码，目的在于获取4000个样本数字单元。
+</p>
+<div class='pic'><img  src='10.bmp'><p>K近邻算法</p></div>
+
+<h3>&nbsp;数阵向量化</h3>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+上面提到的A点B点都是行向量，我们得到的数阵是14行24列的，一个很好的想法就是，把14行数阵拼接成1行，也就是1行336列的行向量。我个人把它叫做“维度是336的行向量”，<a class='attention'> martixtoline(filename)</a>实现了这个思想。
+
+<h3>&nbsp;人工分类</h3>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+这是个体力活，在验证码能够被计算机自动识别之前，只能靠人去识别验证码。4000个样本数字，需要人一个一个地把它分类成0,1,2,4，&hellip;，是的，你没有听错，4000个样本数字，需要人一个一个地把它分类！！！我的做法是，先把4000个二值化没有噪点的单元图片保存起来，然后进行人工把单元图片分类，分类过程中发现有些图片还是有少量噪点的，用windows自带的画图软件处理下，把黑色的噪点用画笔点一下变成白色去掉，如果发现有些单元图片数字被剪切得断头断尾的，把它剔除掉。分类完毕后，再转化成数阵。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 这里数阵txt文件起名字有个小技巧，如果样本数字分类是0，那么名字就起做“0-x.txt”，这样txt文件里就带有标签信息了。我把它保存在“4000个样本单元txt.zip”压缩文件中。
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PS:后来发现，实际上根本不需要4000个样本单元，800个样本单元识别率就足够高了T^T<p>
+
+<h3>&nbsp;样本数阵向量化</h3>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+其实就是把4000个数阵txt文件向量化，转化成python中array类型，方便运算求距离，不同的是，要把它的名字中携带的标签(0,1,2,3,4，&hellip;)保存起来<a class='attention'> sampledata()</a>实现了这个思想。</p>
+
+<h3>&nbsp;正确率测试</h3>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+经过艰苦卓越的奋斗，现在激动人心的时刻终于到来。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+4000个样本单元txt，我只用了800个，放在“sampledata”文件夹中，因为800个识别率足够高了，同时也为了节约计算机运算时间。而其余的放在了“ntxt”文件夹中，可随时根据需要使用，以提高识别率。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+现在，测试开始！首先再次下载一批验证码用于测试，然后灰度化，二值化，剪切，人工归类（这次直接归类即可，不用剔除不好的图片），生成数阵txt文件。我把它保存在“800个测试单元txt.zip”压缩文件中。测试时需解压放在num文件夹内。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+利用<a class='attention'> sampledata()</a>把800(0-8各100个)个样本数阵向量化，调用<a class='attention'>classify0(inX, dataSet, labels, k)</a>函数进行距离比较运算，其中参数inX是要测试的向量，这意味着要调用<a class='attention'> martixtoline(filename)</a>把一个测试单元txt文件转化为行向量，dataSet, labels分别是800个样本单元行向量和800个样本标签，从<a class='attention'> sampledata()</a>中获得，k是选取k个距离最短的标签，这里k=3。</p>
+<div class='pic'><img  style="    height: 550px;" src='11.gif'><p>正确率大于99%</p></div>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+这个结果好得出乎我的意料，我重新下载验证码测试了几次，估计每1600(0-8各200个)到2400(0-8各300个)个数字测试会出现一次错误。</p>
+<div class='pic'><img  style="    height: 650px;" src='14.gif'><p></p></div>
+<br>
+
+<h2 id='Etitle'>Step4&nbsp;模拟登陆</h2>
+<h3>chrome浏览器</h3>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+这个需要chrome浏览器的辅助，用来获取http的头部信息和表单信息,以及url等等，这一块有很多内容可以学习，但是实在腹中无墨水，恕不介绍。</p>
+<h3>requests</h3>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+python的一个库，简单易用，用来post和get网页，也就是模拟登陆，举个栗子，假如要提交表单进行登陆：</p>
+<div  class='code'>
+<p> session = Session()</p>
+<p>response = session.post(post_url, data=post_data, headers=headers)</p>
+
+</div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+post_url就是要提交表单的url，data，一般包含提交的表单信息，headers就是头部了，包含浏览器User-Agent一类的信息。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+这里cookies不需要特别地维护，<a class='attention'> session.post()</a>会自动携带cookies访问post_url。</p>
+<h3>BeautifulSoup</h3>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+python的一个库，颇具粤语特点的名字“靓汤”，真让人有回家的冲动。它用来定位html文档。说明一下python3对应的是BeautifulSoup4了，版本号输错可能会安装不上。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+又举个栗子：假如要获取html文档中第5个	&lt;script&gt;标签的内容该怎么做呢？</p>
+<div  class='code'>
+<p>txt = script[5].get_text()</p>
+<p>print(txt)</p>
+</div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 剩下的就不多说啦，因为我也是第一次使用。附上我认为非常好的中文使用文档链接：</p>
+<div  class='code'>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <a target="_blank" href="https://www.crummy.com/software/BeautifulSoup/bs4/doc/index.zh.html">Beautiful Soup 4.2.0 文档
+</a></p>
+</div>
+<h3>实现</h3>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 说了那么多,不如自己看代码。模拟登陆由函数<a class='attention'> login(username)</a>实现。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 在函数的结尾，针对于我校的研究生网存在学生档案一旦存档，就无法登陆的问题进行了处理，避免原先函数<a class='attention'> login(username)</a>运行返回None这个奇怪的结果。</p>
+<div class='pic'><img  src='12.png'><p>None现象</p></div>
+
+<br>
+
+<h2 id='Ftitle'>Step5&nbsp;结果展示</h2>
+<h3>boom(start,scope)</h3>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <a class='attention'> boom(start,scope)</a>函数负责结果展示。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 它主要干什么呢，就是根据模拟登陆<a class='attention'> login(username)</a>返回的信息进行判断！若模拟登陆中尝试的密码不对(即不是账密一致的)，那就登陆下一个账号，若模拟登陆中是验证码识别错了，那就重试再登陆一次，若模拟登陆成功，则记录该学生的账号信息</p>
+<div class='pic'><img  style="    height: 666px;" src='13.gif'><p></p></div>
+
+<br>
+
+<h2 id='Gtitle'>感谢</h2>
+<h3>机器学习实战</h3>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 不得不说，K近邻算法是这本书教会我的，没有这本书的代码，也就不会有我写的这个程序了。</p>
+<h3>github</h3>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 代码上传托管，可以看到代码的修改历史，万一改代码改到坑里去，又改不回去，可以返回看历史代码，不至于前功尽弃。</p>
+<h3>TeamViewer</h3>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 一个远程操控桌面的软件，穿透内网，感谢它让我不用带着笔记本奔波于寝室和实验室的电脑之间，随时随地都可以远程操控计算机修改代码。</p>
+<h3>ScreenToGif</h3>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 喜欢它的轻量级(2.6M)，喜欢它即点即用(免安装)，一个录屏软件，此网页能展示的动图均是它的功劳。</p>
+
+<br>
+
+<h2 id='Htitle'>结束</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 这学期很早就有识别验证码的想法。只是迫于平时上课和知识不足，一直无法实现，后来也断断续续地翻了很多资料，碰了很多壁。现如今，在这一周的时间里，咬着牙，在忙碌的日常中强行挤出时间，终究还是把它完成了。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 我想说，写这个代码，真的很累很累。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 我有时会问，写这个代码的意义是什么，还略显矫情地为此写个开发记录文档。</p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 它很大程度不会被人所看到，它与以后的工作也不一定相关，它亦不会给我的学习带来加分……</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 既不会带来荣誉，也不会带来物质。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 我想说，支撑我的大概只是一种执念，或者只是一种心结之类的东西吧。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 愿未来的我，对得起今天努力的自己。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 这一刻，值得纪念一下。</p>
+<p style="text-align: right;">2018.1.17&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </p>
+<br><br>
+</div>
+
+<script type="text/javascript">
+$(function(){
+var pos = 0,
+    ticking = false,
+    header = $("#head");
+	
+	
+	$(window).scroll(function() {
+	  pos= $(window).scrollTop();
+	  if(pos > 90&&!ticking){
+      header.addClass("scroll_down");
+      ticking = true;
+     }
+	 if(pos < 90 && ticking){
+		  header.removeClass("scroll_down");
+		  ticking = false;
+	 }
+	});
+	
+	$("#A").click(function(){
+		$("body,html").stop().animate({scrollTop:$('#Atitle').offset().top-100},500);
+	})
+	$("#B").click(function(){
+		$("body,html").stop().animate({scrollTop:$('#Btitle').offset().top-100},500);
+	})
+	$("#C").click(function(){
+		$("body,html").stop().animate({scrollTop:$('#Ctitle').offset().top-100},500);
+	})
+	$("#D").click(function(){
+		$("body,html").stop().animate({scrollTop:$('#Dtitle').offset().top-100},500);
+	})
+	$("#E").click(function(){
+		$("body,html").stop().animate({scrollTop:$('#Etitle').offset().top-100},500);
+	})
+	$("#F").click(function(){
+		$("body,html").stop().animate({scrollTop:$('#Ftitle').offset().top-100},500);
+	})
+	$("#G").click(function(){
+		$("body,html").stop().animate({scrollTop:$('#Gtitle').offset().top-100},500);
+	})
+	$("#H").click(function(){
+		$("body,html").stop().animate({scrollTop:$('#Htitle').offset().top-100},300);
+	})
+});
+
+
+</script>
+ 
+</body>
+</html>
